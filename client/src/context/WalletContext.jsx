@@ -2,7 +2,7 @@
 
 import React, { createContext, useState, useEffect } from 'react';
 import { ethers } from 'ethers';
-import abi from '../../../smart_contract/artifacts/contracts/StudyDAO.sol/StudyDAO.json';
+import abi from '../abi/StudyDAO.json';
 
 export const WalletContext = createContext();
 
