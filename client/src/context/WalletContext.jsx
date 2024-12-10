@@ -3,6 +3,7 @@
 import React, { createContext, useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import abi from '../abi/StudyDAO.json';
+import kabi from '../abi/KnowledgeVault.json'
 
 export const WalletContext = createContext();
 
@@ -13,6 +14,7 @@ export const WalletProvider = ({ children }) => {
     signer: null,
     address: null,
     contract: null,
+    kcontract:null
   });
 
   const connectWallet = async () => {
@@ -23,8 +25,10 @@ export const WalletProvider = ({ children }) => {
       window.location.reload();
     });
 
-    const contractAddress = '0xfb7292450E805b3Fd6AeE5E5bb626A4b02bE2cd1';
+    const contractAddress = '0x828BcC0895Be26F23296A97C79890046e3020A90';
     const contractABI = abi.abi;
+    const kcontractAddress = '0xb19e7037aA19b7aF11D4fD11b85F96018F2366dA'
+    const kcontractABI = kabi.abi;
 
     try {
       const { ethereum } = window;
@@ -44,9 +48,10 @@ export const WalletProvider = ({ children }) => {
       const signer = await provider.getSigner();
       const address = await signer.getAddress();
       const contract = new ethers.Contract(contractAddress, contractABI, signer);
+      const kcontract = new ethers.Contract(kcontractAddress,kcontractABI,signer)
       setAccount(address);
 
-      setState({ provider, signer, address, contract });
+      setState({ provider, signer, address, contract,kcontract });
     } catch (error) {
       console.error('Error connecting to Metamask:', error);
     }

@@ -2,20 +2,23 @@ import React, { useState, useEffect, useContext } from 'react';
 import { WalletContext } from '../context/WalletContext'; // Import the WalletContext
 import image1 from '../assets/images.jpg'
 import image2 from '../assets/image.png'
+import axios from "axios"
 
 function Home() {
     const { state, account, connectWallet } = useContext(WalletContext); // Destructure the context
 
     const [role, setRole] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const [email, setEmail] = useState('');
+    const [name, setName] = useState('');
+    const [imageURI, setImageURI] = useState('');
+    const [profileURI, setProfileURI] = useState('');
 
     useEffect(() => {
         const fetchRole = async () => {
             if (state.contract && account) {
                 setIsLoading(true);
                 try {
-                    // Assuming contract has a method 'members' and checking if the member is a Teacher or Student
+                    // Fetch member details from the contract
                     const member = await state.contract.members(account);
                     if (member.isTeacher) {
                         setRole('Teacher');
@@ -33,11 +36,56 @@ function Home() {
         fetchRole();
     }, [state.contract, account]);
 
+    const handleFileUpload = async (e) => {
+        e.preventDefault();
+        const file = e.target.files[0];
+        if (file) {
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                const res = await axios({
+                    method: 'post',
+                    url: 'https://api.pinata.cloud/pinning/pinFileToIPFS',
+                    data: formData,
+                    headers: {
+                        pinata_api_key: `35cb1bf7be19d2a8fa0d`,
+                        pinata_secret_api_key: `2c2e9e43bca7a619154cb48e8b060c5643ea6220d0b7c9deb565fa491b3b3a50`,
+                        'Content-Type': 'multipart/form-data',
+                    },
+                });
+                const resData = await res.data;
+                const uploadedImageURI = `https://ipfs.io/ipfs/${resData.IpfsHash}`;
+                setImageURI(uploadedImageURI);
+            } catch (error) {
+                console.error('Error uploading file to IPFS:', error);
+            }
+        }
+    };
+
     const registerMember = async (isTeacher) => {
         if (!state.contract || !account) return;
-        setIsLoading(true);
+
         try {
-            await state.contract.registerMember(isTeacher);
+            // Pin JSON to IPFS
+            const data = JSON.stringify({ name, imageURI });
+            const res = await axios({
+                method: 'post',
+                url: 'https://api.pinata.cloud/pinning/pinJSONToIPFS',
+                data,
+                headers: {
+                    pinata_api_key: `35cb1bf7be19d2a8fa0d`,
+                    pinata_secret_api_key: `2c2e9e43bca7a619154cb48e8b060c5643ea6220d0b7c9deb565fa491b3b3a50`,
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            const resData = await res.data;
+            const uploadedProfileURI = `https://ipfs.io/ipfs/${resData.IpfsHash}`;
+            setProfileURI(uploadedProfileURI);
+
+            setIsLoading(true);
+            // Call the contract method to register the member
+            await state.contract.registerMember(isTeacher, uploadedProfileURI);
             setRole(isTeacher ? 'Teacher' : 'Student');
         } catch (error) {
             console.error('Error registering member:', error);
@@ -45,16 +93,6 @@ function Home() {
             setIsLoading(false);
         }
     };
-
-    const handleSubscribe = (e) => {
-        e.preventDefault();
-        if (!email.includes('@')) {
-            alert('Please enter a valid email address');
-        } else {
-            console.log('Subscribed with:', email);
-        }
-    };
-
     return (
         <div className="text-center ">
 
@@ -78,21 +116,35 @@ function Home() {
         <>
             <p className="text-gray-200 text-lg font-medium mb-6">Choose your role to register:</p>
             <div className="flex space-x-4">
+                <input
+                    type="text"
+                    onChange={(e) => setName(e.target.value)} // Corrected onChange handler
+                    value={name} // Corrected value binding
+                    placeholder="Enter your name"
+                    className="border border-gray-300 p-2 rounded-lg" // Optional styling
+                />
+                <input
+                    type="file"
+                    onChange={handleFileUpload}
+                    className="border border-gray-300 p-2 rounded-lg" // Optional styling
+                />
                 <button
                     className="bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-400 hover:to-blue-600 text-white px-6 py-3 rounded-lg font-medium shadow-md transition-all duration-200"
-                    onClick={() => registerMember(true)}
+                    onClick={() => registerMember(true, profileURI)} // Pass profileURI
                 >
                     Teacher
                 </button>
                 <button
                     className="bg-gradient-to-r from-green-500 to-green-700 hover:from-green-400 hover:to-green-600 text-white px-6 py-3 rounded-lg font-medium shadow-md transition-all duration-200"
-                    onClick={() => registerMember(false)}
+                    onClick={() => registerMember(false, profileURI)} // Pass profileURI
                 >
                     Student
                 </button>
             </div>
         </>
     )}
+
+
 
         </div>
         <div class="px-4 mx-auto text-center md:max-w-screen-md lg:max-w-screen-lg lg:px-36">
@@ -259,7 +311,7 @@ function Home() {
                             <p className="mt-4 text-lg text-gray-300">
                                 Stay updated with our latest news and insights.
                             </p>
-                            <form onSubmit={handleSubscribe} className="mt-6 flex max-w-md gap-x-4">
+                            <form className="mt-6 flex max-w-md gap-x-4">
                                 <label htmlFor="email-address" className="sr-only">Email address</label>
                                 <input
                                     id="email-address"
@@ -267,8 +319,6 @@ function Home() {
                                     type="email"
                                     autoComplete="email"
                                     required
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
                                     className="min-w-0 flex-auto rounded-md border-0 bg-white/5 px-3.5 py-2 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm/6"
                                     placeholder="Enter your email"
                                 />

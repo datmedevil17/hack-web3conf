@@ -1,7 +1,7 @@
 import { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { WalletContext } from '../context/WalletContext';
-import { ethers } from 'ethers';
+import { ethers, parseEther } from 'ethers';
 
 
 function Proposals() {
@@ -76,57 +76,60 @@ function Proposals() {
   // Fetch all proposals from the smart contract
   const fetchProposals = async () => {
     try {
-      const proposalsData = await contract.getProposals();
-      const parsedProposals = await Promise.all(
-        proposalsData.map(async (proposal) => {
-          const id = proposal[0].toString();
-          const metadataUri = proposal[1];
-          const votes = proposal[2].toString();
-          const fundsRaised = ethers.formatEther(proposal[3]);
-          const goal = ethers.formatEther(proposal[4]);
-          const proposer = proposal[5];
-          const approved = proposal[6];
-          const fundingCompleted = proposal[7];
+      const proposalCount = await contract.proposalCount();
+      const proposals = [];
 
-          let title = '';
-          let details = '';
-          let hours = '';
-          let docs = '';
+      for (let index = 0; index < proposalCount; index++) {
+        const proposalData = await contract.getProposal(index);
+        // console.log(proposalData)
 
-          try {
-            const response = await axios.get(metadataUri);
-            const metadata = response.data;
-            title = metadata.title || 'No Title';
-            details = metadata.description || 'No Details';
-            hours = metadata.timeRequired || '0';
-            docs = metadata.researchDocs || 'No Docs';
-          } catch (error) {
-            console.error(`Error fetching metadata for proposal ${id}:`, error);
-          }
+        // Destructuring proposalData into individual properties
+        const [
+          proposalId,
+          detailsUri,
+          votes,
+          fundsRaised,
+          goal,
+          proposer,
+          approved,
+          fundingCompleted
+        ] = proposalData;
 
-          return {
-            id,
-            metadataUri,
-            votes,
-            fundsRaised,
-            goal,
-            proposer,
+        // console.log(detailsUri);
+
+        // Fetch the details from the URI (assuming it's an IPFS URL)
+        const response = await fetch(detailsUri);
+        const details = await response.json();
+            const {title,description,timeRequired,researchDocs} = details
+            const proposal = {
             approved,
-            fundingCompleted,
-            title,
-            details,
-            hours,
-            docs,
-          };
-        })
-      );
+            goal:parseEther(goal.toString()),
+            description:description,
+            fundsRaised:fundsRaised.toString(),
+            id: proposalId.toString(),
+            proposer:`${proposer.slice(0, 6)}...${proposer.slice(-4)}`,
+            researchDocs:researchDocs,
+            timeRequired:timeRequired,
+            title:title,
+            votes:votes.toString(),
+            fundingCompleted
 
-      setProposals(parsedProposals);
-      console.log(parsedProposals)
+        }
+        console.log(proposal)
+        proposals.push(proposal)
+
+
+
+      }
+      setProposals(proposals)
+
+
     } catch (error) {
       console.error('Error fetching proposals:', error);
     }
   };
+
+
 
 
 
@@ -145,7 +148,7 @@ function Proposals() {
     if (contract) {
       fetchProposals();
     }
-  }, []);
+  });
 
   return (
     <div className="p-4">
@@ -253,10 +256,10 @@ function Proposals() {
 
         <h3 className="text-lg font-semibold text-gray-800 mb-2">{proposal.title}</h3>
         <p className="text-sm text-gray-600 mb-4">
-          <strong>Description:</strong> {proposal.details}
+          <strong>Description:</strong> {proposal.description}
         </p>
         <p className="text-sm text-gray-600">
-          <strong>Time Required:</strong> {proposal.hours} hours
+          <strong>Time Required:</strong> {proposal.timeRequired} hours
         </p>
         <p className="text-sm text-gray-600">
           <strong>Goal:</strong> {proposal.goal} ETH
@@ -316,6 +319,7 @@ function Proposals() {
     ))
   )}
 </div>
+
 
 
     </div>

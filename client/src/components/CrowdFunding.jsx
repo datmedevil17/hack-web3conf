@@ -1,5 +1,4 @@
 import React, { useContext, useState, useEffect } from 'react';
-import axios from "axios";
 import { WalletContext } from '../context/WalletContext';
 import { ethers } from 'ethers';
 import { toast, ToastContainer } from 'react-toastify';
@@ -20,7 +19,7 @@ const CrowdFunding = () => {
 
     const donateToProposal = async (proposalId) => {
         const donationAmount = donationAmounts[proposalId];
-        if (donationAmount > 0) {
+        if (donationAmount && donationAmount > 0) {
             try {
                 const donationInWei = ethers.parseEther(donationAmount.toString());
 
@@ -28,71 +27,65 @@ const CrowdFunding = () => {
                     value: donationInWei,
                 });
 
-                // Toast success message
+                await tx.wait(); // Wait for transaction confirmation
+
                 toast.success("Funds added successfully!");
                 console.log("Funds added successfully.");
+                fetchProposals(); // Refresh proposals to show updated data
             } catch (error) {
-                // Toast error message
-                toast.error("Error processing donation: " + error.message);
+                toast.error("Error processing donation: " + error.reason || error.message);
                 console.error("Error processing donation:", error);
             }
         } else {
-            // Toast error message if no donation amount is entered
             toast.error("Please enter a valid donation amount.");
-            console.log("Please enter a valid donation amount.");
         }
     };
 
     const fetchProposals = async () => {
         try {
-            const proposalsData = await contract.getProposals();
-            const parsedProposals = await Promise.all(
-                proposalsData.map(async (proposal) => {
-                    const id = proposal[0].toString();
-                    const metadataUri = proposal[1];
-                    const votes = proposal[2].toString();
-                    const fundsRaised = ethers.formatEther(proposal[3]);
-                    const goal = ethers.formatEther(proposal[4]);
-                    const proposer = proposal[5];
-                    const approved = proposal[6];
-                    const fundingCompleted = proposal[7];
+            const proposalCount = await contract.proposalCount();
+            const proposals = [];
 
-                    let title = '';
-                    let details = '';
-                    let hours = '';
-                    let docs = '';
+            for (let index = 0; index < proposalCount; index++) {
+                const proposalData = await contract.getProposal(index);
 
-                    try {
-                        const response = await axios.get(metadataUri);
-                        const metadata = response.data;
-                        title = metadata.title || 'No Title';
-                        details = metadata.description || 'No Details';
-                        hours = metadata.timeRequired || '0';
-                        docs = metadata.researchDocs || 'No Docs';
-                    } catch (error) {
-                        console.error(`Error fetching metadata for proposal ${id}:`, error);
-                        toast.error(`Error fetching metadata for proposal ${id}`);
-                    }
+                // Destructuring proposalData
+                const [
+                    proposalId,
+                    detailsUri,
+                    votes,
+                    fundsRaised,
+                    goal,
+                    proposer,
+                    approved,
+                    fundingCompleted
+                ] = proposalData;
 
-                    return {
-                        id,
-                        metadataUri,
-                        votes,
-                        fundsRaised,
-                        goal,
-                        proposer,
-                        approved,
-                        fundingCompleted,
-                        title,
-                        details,
-                        hours,
-                        docs,
-                    };
-                })
-            );
+                // Fetching details from IPFS
+                const response = await fetch(detailsUri);
+                const details = await response.json();
+                const { title, description, timeRequired, researchDocs } = details;
 
-            setProposals(parsedProposals);
-            console.log(parsedProposals);
+                const proposal = {
+                    id: proposalId.toString(),
+                    title,
+                    description,
+                    timeRequired,
+                    researchDocs,
+                    proposer: `${proposer.slice(0, 6)}...${proposer.slice(-4)}`, // Sliced address
+                    proposerFull: proposer, // Full address for tooltip
+                    votes: votes.toString(),
+                    fundsRaised: ethers.formatEther(fundsRaised),
+                    goal: ethers.formatEther(goal),
+                    approved,
+                    fundingCompleted,
+                };
+
+                proposals.push(proposal);
+            }
+
+            setProposals(proposals);
+            console.log(proposals);
         } catch (error) {
             console.error('Error fetching proposals:', error);
             toast.error("Error fetching proposals: " + error.message);
@@ -119,7 +112,7 @@ const CrowdFunding = () => {
                             <p className="text-gray-600 text-center col-span-full">No proposals available</p>
                         ) : (
                             proposals
-                                .filter((proposal) => proposal.approved) // Only show approved proposals
+                                .filter((proposal) => proposal.approved) // Show only approved proposals
                                 .map((proposal) => (
                                     <div
                                         key={proposal.id}
@@ -127,10 +120,10 @@ const CrowdFunding = () => {
                                     >
                                         <h3 className="text-lg font-semibold text-gray-800 mb-2">{proposal.title}</h3>
                                         <p className="text-sm text-gray-600 mb-4">
-                                            <strong>Description:</strong> {proposal.details}
+                                            <strong>Description:</strong> {proposal.description}
                                         </p>
                                         <p className="text-sm text-gray-600">
-                                            <strong>Time Required:</strong> {proposal.hours} hours
+                                            <strong>Time Required:</strong> {proposal.timeRequired} hours
                                         </p>
                                         <p className="text-sm text-gray-600">
                                             <strong>Goal:</strong> {proposal.goal} ETH
@@ -139,31 +132,23 @@ const CrowdFunding = () => {
                                             <strong>Funds Raised:</strong> {proposal.fundsRaised} ETH
                                         </p>
                                         <p className="text-sm text-gray-600">
-                                            <strong>Proposer:</strong> {proposal.proposer}
+                                            <strong>Proposer:</strong>{' '}
+                                            <span
+                                                title={proposal.proposerFull} // Tooltip for full address
+                                                className="cursor-pointer"
+                                            >
+                                                {proposal.proposer}
+                                            </span>
                                         </p>
                                         <p className="text-sm text-gray-600 flex items-center">
                                             <strong>Research Documents:</strong>
                                             <a
-                                                href={proposal.docs}
+                                                href={proposal.researchDocs}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                                 className="ml-2 text-blue-600 hover:text-blue-800"
-                                                title="View Research Document"
                                             >
-                                                <svg
-                                                    xmlns="http://www.w3.org/2000/svg"
-                                                    fill="none"
-                                                    viewBox="0 0 24 24"
-                                                    strokeWidth={1.5}
-                                                    stroke="currentColor"
-                                                    className="w-5 h-5"
-                                                >
-                                                    <path
-                                                        strokeLinecap="round"
-                                                        strokeLinejoin="round"
-                                                        d="M15.75 9V3.75a.75.75 0 00-.75-.75h-6a.75.75 0 00-.75.75V9M12 15v6m0 0l-3-3m3 3l3-3"
-                                                    />
-                                                </svg>
+                                                View
                                             </a>
                                         </p>
 
@@ -208,7 +193,6 @@ const CrowdFunding = () => {
                                 ))
                         )}
                     </div>
-                    {/* Add additional logic for crowdfunding functionalities */}
                 </div>
             ) : (
                 <p className="text-red-600 font-semibold">
@@ -217,7 +201,17 @@ const CrowdFunding = () => {
             )}
 
             {/* Toast Container */}
-            <ToastContainer position="top-right" autoClose={5000} hideProgressBar={false} newestOnTop closeOnClick rtl={false} pauseOnFocusLoss draggable pauseOnHover />
+            <ToastContainer
+                position="top-right"
+                autoClose={5000}
+                hideProgressBar={false}
+                newestOnTop
+                closeOnClick
+                rtl={false}
+                pauseOnFocusLoss
+                draggable
+                pauseOnHover
+            />
         </div>
     );
 };
