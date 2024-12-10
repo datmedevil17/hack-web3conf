@@ -1,6 +1,6 @@
 import React, { useContext, useState, useEffect } from 'react';
 import { WalletContext } from '../context/WalletContext';
-import { ethers } from 'ethers';
+import { ethers, formatEther } from 'ethers';
 import nodp from "../assets/no-dp.jpeg";
 import STD from "../assets/STDToken.png"; // Token Image
 
@@ -76,16 +76,19 @@ const Profile = () => {
   const fetchProfile = async () => {
     try {
       const role = await kcontract.getProfile(account); // Fetch profile
-      console.log(role);
+      console.log('Role object:', role);
 
-      // Destructure the properties from the returned object
-      const { contributions, tokens } = role;
-      setContribution(contributions.toString())
-      setSTD(tokens.toString())
+      if (role) {
+        const contributions = role.contributions || 0;
+        const tokens = role.tokens || 0;
 
-
+        setContribution(contributions);
+        setSTD(formatEther(tokens.toString()));
+      } else {
+        console.warn('Profile data is not available for the account.');
+      }
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      console.error('Error fetching profile:', error.message);
     }
   };
 

@@ -94,13 +94,25 @@ const Events = () => {
         coverImage: event[4],
         cost: ethers.formatEther(event[5]),
       }));
-      console.log(fetchedEvents)
+    //   console.log(fetchedEvents)
 
       setEvents(fetchedEvents);
     } catch (error) {
       console.error('Error fetching events:', error);
     }
   };
+  const handleBuyTicket=async(id)=>{
+    try {
+        const tx = await kcontract.bookEvent(id)
+        await tx.wait()
+        console.log("Bought Successfully")
+
+
+    } catch (error) {
+        console.log(error)
+
+    }
+  }
 
 
   // Fetch events on component mount

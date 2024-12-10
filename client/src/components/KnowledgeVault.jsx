@@ -162,6 +162,27 @@ const KnowledgeVault = () => {
   };
   const sliceAddress = (address) =>
     `${address.slice(0, 6)}...${address.slice(-4)}`;
+
+  const handleUpvote = async (id) => {
+    try {
+        const tx = await kcontract.upvoteResource(id)
+        await tx.wait()
+        console.log("Upvoted Successfully")
+    } catch (error) {
+        console.log(error)
+    }
+
+  }
+  const handleDownvote = async (id) => {
+    try {
+        const tx = await kcontract.downvoteResource(id)
+        await tx.wait()
+        console.log("Upvoted Successfully")
+    } catch (error) {
+        console.log(error)
+    }
+
+  }
   useEffect(() => {
     fetchResources()
   }, )
@@ -333,63 +354,78 @@ const KnowledgeVault = () => {
         </div>
       </div>
     )}
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 p-4">
-      {resources.map((resource) => (
-        <div
-          key={resource.id}
-          className="bg-white shadow-md rounded-lg p-4 border border-gray-200 transform transition-all duration-300 hover:scale-105 hover:shadow-lg"
+ <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 p-4">
+  {resources.map((resource) => (
+    <div
+      key={resource.id}
+      className="bg-white shadow-md rounded-lg p-4 border border-gray-200 transform transition-all duration-300 hover:scale-105 hover:shadow-lg"
+    >
+      {/* SVG Icon at the top */}
+      <div className="flex justify-center mb-4">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="icon icon-file w-12 h-12"
+          aria-hidden="true"
+          role="img"
         >
-          {/* SVG Icon at the top */}
-          <div className="flex justify-center mb-4">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-              className="w-12 h-12 text-blue-500"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M3 16.5v4.5h4.5M3 16.5L16.5 3M3 16.5h4.5M16.5 3h4.5v4.5M16.5 3v4.5"
-              />
-            </svg>
-          </div>
+          <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <path d="M12 4.5v5.25a.75.75 0 00.75.75H18m-6 0L18 4.5" />
+          <path d="M15.75 15l-3 3-1.5-1.5" />
+        </svg>
+      </div>
 
-          {/* Card Content */}
-          <h3 className="text-xl font-bold mb-2 text-gray-800">{resource.title}</h3>
-          <p className="text-gray-700 text-sm mb-2">
-            <span className="font-semibold">Description:</span>{" "}
-            {resource.description}
-          </p>
-          <p className="text-gray-700 text-sm mb-2">
-            <span className="font-semibold">Category:</span> {resource.category}
-          </p>
-          <p className="text-gray-700 text-sm mb-2">
-            <span className="font-semibold">Contributor:</span>{" "}
-            {sliceAddress(resource.contributor)}
-          </p>
-          <p className="text-gray-700 text-sm mb-2">
-            <span className="font-semibold">Upvotes:</span> {resource.upvotes} |{" "}
-            <span className="font-semibold">Downvotes:</span>{" "}
-            {resource.downvotes}
-          </p>
-          <p className="text-gray-700 text-sm mb-2">
-            <span className="font-semibold">Approved:</span>{" "}
-            {resource.approved ? "Yes" : "No"}
-          </p>
-          <a
-            href={resource.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-500 underline text-sm hover:text-blue-700"
-          >
-            View Resource
-          </a>
-        </div>
-      ))}
+      {/* Card Content */}
+      <h3 className="text-xl font-bold mb-2 text-gray-800">{resource.title}</h3>
+      <p className="text-gray-700 text-sm mb-2">
+        <span className="font-semibold">Description:</span> {resource.description}
+      </p>
+      <p className="text-gray-700 text-sm mb-2">
+        <span className="font-semibold">Category:</span> {resource.category}
+      </p>
+      <p className="text-gray-700 text-sm mb-2">
+        <span className="font-semibold">Contributor:</span> {sliceAddress(resource.contributor)}
+      </p>
+      <p className="text-gray-700 text-sm mb-2">
+        <span className="font-semibold">Upvotes:</span> {resource.upvotes} |{" "}
+        <span className="font-semibold">Downvotes:</span> {resource.downvotes}
+      </p>
+      <p className="text-gray-700 text-sm mb-2">
+        <span className="font-semibold">Approved:</span> {resource.approved ? "Yes" : "No"}
+      </p>
+      <a
+        href={resource.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-blue-500 underline text-sm hover:text-blue-700"
+      >
+        View Resource
+      </a>
+
+      {/* Upvote and Downvote Buttons */}
+      <div className="flex justify-between items-center mt-4">
+        <button
+          onClick={() => handleUpvote(resource.id)}
+          className="bg-green-500 text-white text-sm py-1 px-4 rounded hover:bg-green-600"
+        >
+          Upvote
+        </button>
+        <button
+          onClick={() => handleDownvote(resource.id)}
+          className="bg-red-500 text-white text-sm py-1 px-4 rounded hover:bg-red-600"
+        >
+          Downvote
+        </button>
+      </div>
     </div>
+  ))}
+</div>
+
   </div>
 
 
