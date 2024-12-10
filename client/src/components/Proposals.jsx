@@ -2,6 +2,8 @@ import { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { WalletContext } from '../context/WalletContext';
 import { ethers, formatEther, parseEther } from 'ethers';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 
 function Proposals() {
@@ -37,6 +39,7 @@ function Proposals() {
         });
         const resData = await res.data;
         setResearchDocs(`https://ipfs.io/ipfs/${resData.IpfsHash}`);
+        toast.success("Uploaded to IPFS")
       } catch (error) {
         console.error('Error uploading file to IPFS', error);
       }
@@ -66,6 +69,7 @@ function Proposals() {
       // Call the smart contract to propose content
       await contract.proposeContent(metadataUrl, goalInWei);
       setModalOpen(false); // Close the modal after submission
+      toast.success("Proposal Created.")
     } catch (error) {
       console.error('Error creating proposal:', error);
     } finally {
@@ -138,8 +142,14 @@ function Proposals() {
     try {
       await contract.voteForProposal(id);
       setVotedProposals((prevVoted) => [...prevVoted, id]); // Add to voted proposals
+      toast.success("Voted Successfully")
     } catch (error) {
       console.error('Error voting for proposal:', error);
+    }
+  };
+  const handleModalClose = (e) => {
+    if (e.target === e.currentTarget) {
+      setModalOpen(false);
     }
   };
 
@@ -184,7 +194,7 @@ function Proposals() {
               onChange={(e) => setDescription(e.target.value)}
               required
               className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-              placeholder="Provide a detailed description"
+              placeholder="Provide a detailed description. Kindly focus on technical and research aspects."
             />
           </div>
           <div className="form-group">
@@ -200,7 +210,7 @@ function Proposals() {
             />
           </div>
           <div className="form-group">
-            <label htmlFor="researchDocs" className="block text-sm font-medium text-gray-700">Upload Research Docs</label>
+            <label htmlFor="researchDocs" className="block text-sm font-medium text-gray-700">Upload Research Docs/* (Don't provide sensitive Information.)</label>
             <input
               type="file"
               id="researchDocs"
@@ -319,6 +329,17 @@ function Proposals() {
     ))
   )}
 </div>
+<ToastContainer
+                position="top-right"
+                autoClose={5000}
+                hideProgressBar={false}
+                newestOnTop
+                closeOnClick
+                rtl={false}
+                pauseOnFocusLoss
+                draggable
+                pauseOnHover
+            />
 
 
 

@@ -138,6 +138,7 @@ function Dashboard() {
                 <Outlet /> {/* Renders the nested routes */}
             </div>
         </div>
+
     );
 }
 

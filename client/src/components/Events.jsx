@@ -2,6 +2,8 @@ import React, { useContext, useState, useEffect } from 'react';
 import { WalletContext } from '../context/WalletContext';
 import axios from 'axios';
 import { ethers } from 'ethers';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const Events = () => {
   const { state, account } = useContext(WalletContext);
@@ -34,6 +36,7 @@ const Events = () => {
         });
         const resData = res.data;
         setCoverImage(`https://ipfs.io/ipfs/${resData.IpfsHash}`);
+        toast.success("Uploaded to IPFS")
       } catch (error) {
         console.error('Error uploading file to IPFS', error);
         setError('Failed to upload image. Please try again.');
@@ -67,7 +70,9 @@ const Events = () => {
       setDate('');
       setCost('');
       setCoverImage(null);
+
       displayEvents(); // Refresh events
+      toast.success("Submission Successful")
     } catch (err) {
       console.error('Error creating event:', err);
       setError('Failed to create event. Please try again.');
@@ -105,7 +110,7 @@ const Events = () => {
     try {
         const tx = await kcontract.bookEvent(id)
         await tx.wait()
-        console.log("Bought Successfully")
+        toast.success("Bought Successfully")
 
 
     } catch (error) {
@@ -236,6 +241,17 @@ const Events = () => {
 
   </div>
 </div>
+<ToastContainer
+                position="top-right"
+                autoClose={5000}
+                hideProgressBar={false}
+                newestOnTop
+                closeOnClick
+                rtl={false}
+                pauseOnFocusLoss
+                draggable
+                pauseOnHover
+            />
 
     </div>
   );

@@ -33,11 +33,9 @@ const CrowdFunding = () => {
                 console.log("Funds added successfully.");
                 fetchProposals(); // Refresh proposals to show updated data
             } catch (error) {
-                toast.error("Error processing donation: " + error.reason || error.message);
-                console.error("Error processing donation:", error);
+                console.log(error)
             }
         } else {
-            toast.error("Please enter a valid donation amount.");
         }
     };
 
@@ -88,7 +86,6 @@ const CrowdFunding = () => {
             console.log(proposals);
         } catch (error) {
             console.error('Error fetching proposals:', error);
-            toast.error("Error fetching proposals: " + error.message);
         }
     };
 

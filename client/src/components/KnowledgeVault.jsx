@@ -1,6 +1,8 @@
 import React, { useState,useEffect,useContext} from "react";
 import { WalletContext } from '../context/WalletContext';
 import { FaFileAlt } from 'react-icons/fa';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 
 import axios from "axios";
@@ -117,7 +119,7 @@ const KnowledgeVault = () => {
         });
         const resData = await res.data;
         setFile(`https://ipfs.io/ipfs/${resData.IpfsHash}`);
-        console.log(file)
+        toast.success("Successfully Uploaded to IPFS.")
       } catch (error) {
         console.error("Error uploading file to IPFS", error);
       }
@@ -136,7 +138,7 @@ const KnowledgeVault = () => {
     const tx = await kcontract.submitResource(title, file, description, selectedTags, category);
     await tx.wait();
     console.log(tx);
-    console.log("Upload Success");
+    toast.success("Upload Success");
     setIsModalOpen(false);
   };
   const fetchResources = async () => {
@@ -169,7 +171,7 @@ const KnowledgeVault = () => {
     try {
         const tx = await kcontract.upvoteResource(id)
         await tx.wait()
-        console.log("Upvoted Successfully")
+        toast.success("Upvoted Successfully")
     } catch (error) {
         console.log(error)
     }
@@ -179,7 +181,7 @@ const KnowledgeVault = () => {
     try {
         const tx = await kcontract.downvoteResource(id)
         await tx.wait()
-        console.log("Upvoted Successfully")
+        toast.success("Upvoted Successfully")
     } catch (error) {
         console.log(error)
     }
@@ -412,6 +414,17 @@ const KnowledgeVault = () => {
     </div>
   ))}
 </div>
+<ToastContainer
+                position="top-right"
+                autoClose={5000}
+                hideProgressBar={false}
+                newestOnTop
+                closeOnClick
+                rtl={false}
+                pauseOnFocusLoss
+                draggable
+                pauseOnHover
+            />
 
   </div>
 
