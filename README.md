@@ -1,8 +1,6 @@
-Here is the detailed and enhanced version of the project description, along with updated Sepolia Ethereum Testnet contract links:
-
 ---
 
-# **StudyDAO and KnowledgeVault**
+# **StudyDAO**
 
 This project comprises two smart contracts deployed on the **Sepolia Ethereum Testnet** using the **Hardhat framework**. These contracts form the backbone of a decentralized ecosystem for **collaborative learning, resource sharing, and incentivized participation**.
 
