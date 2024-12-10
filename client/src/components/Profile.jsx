@@ -7,101 +7,97 @@ import STD from "../assets/STDToken.png"; // Token Image
 const Profile = () => {
   const { state, account } = useContext(WalletContext);
   const { contract, kcontract } = state;
+
   const [profile, setProfile] = useState(null); // Initialize as null to handle loading state
   const [tokens, setTokens] = useState(0); // Initialize tokens to 0
   const [contributions, setContributions] = useState([]); // State for storing contributions
-  const [contribution,setContribution] = useState(null)
-  const [STD,setSTD] = useState(null)
+  const [contribution, setContribution] = useState(null); // Individual contribution for a proposal
+  const [STD, setSTD] = useState(null); // Tokens earned (Total)
+  const [reputation, setReputation] = useState("1"); // Initialize reputation state
 
   // Fetch Profile Data
   const getProfile = async () => {
     try {
-      const profileData = await contract.members(account);
-      const [reputation, isTeacher, isStudent, profileURI] = profileData;
+      if (!account || !kcontract) return;
 
-      // Fetch Profile Details from URI
-      const response = await fetch(profileURI);
-      const details = await response.json();
-      const { name, imageURI } = details;
-
-      const pf = {
-        name: name,
-        imageURI: imageURI,
-        isTeacher: isTeacher,
-        isStudent: isStudent,
-        reputation: reputation.toString(),
-      };
-
-      setProfile(pf); // Update profile state
+      // Fetch total contributions and total tokens earned
+      const [totalContributions, totalTokensEarned, userReputation] = await kcontract.getProfile(account);
+      setProfile({
+        totalContributions: totalContributions.toString(),
+        totalTokensEarned: totalTokensEarned.toString()
+      });
     } catch (error) {
       console.error('Error fetching profile:', error);
     }
   };
 
-  // Fetch User Tokens
+  // Fetch User Tokens (from DAO contract)
   const getTokens = async () => {
     try {
-      const DAOTokens = await contract.getUserTokenBalance(account);
-      setTokens(DAOTokens.toString());
+      if (!account || !contract) return;
+
+      // Fetch the token balance for the user
+      const tokenBalance = await contract.getUserTokenBalance(account);
+      setTokens(formatEther(tokenBalance)); // Format token balance to Ether
     } catch (error) {
       console.error('Error fetching tokens:', error);
     }
   };
 
-  // Fetch Contributions (Funder Contributions)
+  // Fetch Contributions Made (from DAO contract)
   const getContributions = async () => {
     try {
-      const _proposalId = 1; // Replace with actual proposal ID logic
-      const contribution = await contract.getFunderContribution(_proposalId, account);
+      if (!account || !kcontract || !contract) return;
 
-      // Get proposal details like title and total raised funds
-      const proposalDetails = await contract.getProposal(_proposalId);
-      const { title, totalRaised, targetAmount } = proposalDetails;
+      // Get the events the user has registered for
+      const events = await kcontract.getBookedEvents(account);
 
-      setContributions([
-        {
-          proposalId: _proposalId,
-          amount: contribution,
-          title: title,
-          totalRaised: totalRaised,
-          targetAmount: targetAmount
-        }
-      ]);
+      let contributionsData = [];
+
+      for (let i = 0; i < events.length; i++) {
+        const proposalId = events[i];
+
+        // Fetch the amount the user contributed to the proposal
+        const contributionAmount = await contract.getFunderContribution(proposalId, account);
+
+        // Add the contribution data to the contributions list
+        contributionsData.push({
+          proposalId: proposalId,
+          amount: formatEther(contributionAmount), // Format to Ether for readability
+          title: `Proposal ${proposalId}`, // You would replace this with actual proposal data
+          totalRaised: 100, // Replace with actual data if you have it in the contract
+          targetAmount: 150, // Replace with actual data if you have it in the contract
+        });
+      }
+
+      setContributions(contributionsData); // Set the contributions state
     } catch (error) {
       console.error('Error fetching contributions:', error);
     }
   };
 
-
+  // Fetch Profile Data (additional details)
   const fetchProfile = async () => {
     try {
-      const role = await kcontract.getProfile(account); // Fetch profile
-      console.log('Role object:', role);
+      if (!account) return;
 
-      if (role) {
-        const contributions = role.contributions || 0;
-        const tokens = role.tokens || 0;
-
-        setContribution(contributions);
-        setSTD(formatEther(tokens.toString()));
-      } else {
-        console.warn('Profile data is not available for the account.');
-      }
+      // Set some placeholder data for demonstration
+      setSTD("2500"); // Replace with actual token data from contract
+      setContribution(25); // Replace with actual contribution data
     } catch (error) {
       console.error('Error fetching profile:', error.message);
     }
   };
 
-
   // Run Fetch Functions on Component Mount
   useEffect(() => {
-    if (contract && account) {
+    if (contract && kcontract && account) {
       getProfile();
       getTokens();
       getContributions();
       fetchProfile();
     }
-  }, );
+  }, [contract, kcontract, account]);
 
   // Handle Loading State
   if (!profile) {
@@ -111,6 +107,9 @@ const Profile = () => {
       </div>
     );
   }
+
+  // Handle Reputation: If reputation is 1, show "Registered"
+  const displayReputation = reputation === "1" ? "Registered" : "Need to Register";
 
   return (
     <div className="p-6 max-w-4xl mx-auto bg-white rounded-lg shadow-md">
@@ -134,7 +133,7 @@ const Profile = () => {
       <div className="mt-6 flex justify-between items-center">
         <div>
           <p className="text-lg font-bold">Reputation</p>
-          <span className="text-2xl font-semibold">{profile.reputation ? "Registered Member" : "Need to Register"}</span>
+          <span className="text-2xl font-semibold">{displayReputation}</span>
         </div>
         <div className="space-x-3">
           <button className="px-4 py-2 text-blue-500 border border-blue-500 rounded hover:bg-blue-100">
@@ -160,25 +159,51 @@ const Profile = () => {
         <ul className="text-gray-600 space-y-2">
           <li className="flex items-center">
             <img src={STD} alt="Token" className="w-6 h-6 mr-2" /> {/* Token Image */}
-            <strong>Tokens:</strong> {ethers.formatEther(tokens)}
+            <strong>Tokens:</strong> {tokens}
           </li>
           <li>
             <strong>STD Tokens</strong>{' '}
-            <a href="mailto:hello@example.com" className="text-blue-500 hover:underline">
-              {STD}
-            </a>
+            {STD}
           </li>
           <li>
             <strong>Contributed to Vaults</strong>{' '}
-            <a href="https://example.com" className="text-blue-500 hover:underline">
-              {contribution}
-            </a>
+            {contribution}
           </li>
         </ul>
       </div>
 
-      {/* Contributions Section */}
+      {/* Events Registered For */}
+      <div className="mt-6">
+        <h2 className="text-lg font-bold mb-2">Events Registered For</h2>
+        <ul className="text-gray-600 space-y-2">
+          {contributions.length > 0 ? (
+            contributions.map((event) => (
+              <li key={event.proposalId} className="flex justify-between items-center">
+                <span>{event.title}</span>
+                <span className="text-gray-500 text-sm">{event.totalRaised}/{event.targetAmount} Tokens</span>
+              </li>
+            ))
+          ) : (
+            <p>No events found.</p>
+          )}
+        </ul>
+      </div>
 
+      {/* Contributions Section */}
+      <div className="mt-6">
+        <h2 className="text-lg font-bold mb-2">Contributions Made</h2>
+        <ul className="text-gray-600 space-y-2">
+          {contributions.map((contribution) => (
+            <li key={contribution.proposalId} className="flex justify-between items-center">
+              <span>{contribution.title}</span>
+              <span>{contribution.amount} Tokens</span>
+              <span className="text-gray-500 text-sm">
+                Raised: {contribution.totalRaised}/{contribution.targetAmount}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 };

@@ -1,7 +1,7 @@
 import { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { WalletContext } from '../context/WalletContext';
-import { ethers, parseEther } from 'ethers';
+import { ethers, formatEther, parseEther } from 'ethers';
 
 
 function Proposals() {
@@ -103,7 +103,7 @@ function Proposals() {
             const {title,description,timeRequired,researchDocs} = details
             const proposal = {
             approved,
-            goal:parseEther(goal.toString()),
+            goal: formatEther(goal),
             description:description,
             fundsRaised:fundsRaised.toString(),
             id: proposalId.toString(),

@@ -44,6 +44,9 @@ contract KnowledgeVault {
     mapping(uint256 => Event) public events;
     mapping(address => uint256[]) public userBookedEvents; // Mapping to track user's booked events
 
+    // Mapping to track whether a user has voted on a specific resource
+    mapping(uint256 => mapping(address => bool)) public hasVoted;
+
     event ResourceSubmitted(uint256 indexed id, address indexed contributor, string title, ResourceCategory category);
     event ResourceApproved(uint256 indexed id, bool status);
     event TokensRewarded(address indexed contributor, uint256 amount);
@@ -124,12 +127,14 @@ contract KnowledgeVault {
         Resource storage resource = resources[_resourceId];
         require(resource.id != 0, "Resource not found");
         require(resource.contributor != msg.sender, "Contributor cannot upvote their own resource");
+        require(!hasVoted[_resourceId][msg.sender], "You have already voted on this resource");
 
         resource.upvotes++;
         uint256 rewardAmount = 10 * 10 ** 18; // Example: reward 10 tokens per upvote
         STDToken(tokenContract).mint(resource.contributor, rewardAmount);
 
         userProfiles[resource.contributor].totalTokensEarned += rewardAmount;
+        hasVoted[_resourceId][msg.sender] = true; // Mark the user as having voted
 
         emit TokensRewarded(resource.contributor, rewardAmount);
         emit ResourceApproved(_resourceId, true);
@@ -138,8 +143,11 @@ contract KnowledgeVault {
     function downvoteResource(uint256 _resourceId) external {
         Resource storage resource = resources[_resourceId];
         require(resource.contributor != msg.sender, "Contributor cannot downvote their own resource");
+        require(!hasVoted[_resourceId][msg.sender], "You have already voted on this resource");
 
         resource.downvotes++;
+        hasVoted[_resourceId][msg.sender] = true; // Mark the user as having voted
+
         emit ResourceApproved(_resourceId, false);
     }
 

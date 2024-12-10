@@ -1,5 +1,7 @@
 import React, { useState,useEffect,useContext} from "react";
 import { WalletContext } from '../context/WalletContext';
+import { FaFileAlt } from 'react-icons/fa';
+
 
 import axios from "axios";
 
@@ -361,24 +363,9 @@ const KnowledgeVault = () => {
       className="bg-white shadow-md rounded-lg p-4 border border-gray-200 transform transition-all duration-300 hover:scale-105 hover:shadow-lg"
     >
       {/* SVG Icon at the top */}
-      <div className="flex justify-center mb-4">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="icon icon-file w-12 h-12"
-          aria-hidden="true"
-          role="img"
-        >
-          <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          <path d="M12 4.5v5.25a.75.75 0 00.75.75H18m-6 0L18 4.5" />
-          <path d="M15.75 15l-3 3-1.5-1.5" />
-        </svg>
-      </div>
+      <div className="w-full h-48 flex items-center justify-center bg-gray-100 rounded-t-lg">
+                <FaFileAlt className="text-gray-500 text-6xl" />
+              </div>
 
       {/* Card Content */}
       <h3 className="text-xl font-bold mb-2 text-gray-800">{resource.title}</h3>

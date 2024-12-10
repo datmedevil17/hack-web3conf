@@ -4,6 +4,8 @@ pragma solidity ^0.8.0;
 import "./DAOToken.sol";
 
 contract StudyDAO {
+    address public admin;  // Admin address for upgrading to teacher role
+
     struct Member {
         uint reputation;
         bool isTeacher;
@@ -21,6 +23,7 @@ contract StudyDAO {
         bool approved;
         bool fundingCompleted;
         mapping(address => uint256) funders;
+        mapping(address => bool) voters;  // Track who voted
     }
 
     mapping(address => Member) public members;
@@ -30,11 +33,12 @@ contract StudyDAO {
 
     DAOToken public daoToken;
 
-    uint256 public rewardOnRegistration = 100 * 10**18;
+    uint256 public rewardOnTeacherUpgrade = 200 * 10**18;  // Mint reward when upgraded to teacher
     uint256 public rewardOnApproval = 200 * 10**18;
     uint256 public fundingRewardMultiplier = 2;
 
     event MemberRegistered(address indexed member, bool isTeacher);
+    event TeacherUpgraded(address indexed member);
     event ProposalCreated(uint indexed proposalId, address indexed proposer, string description, uint256 goal);
     event Voted(uint indexed proposalId, address indexed voter, uint256 votes);
     event ProposalFunded(uint indexed proposalId, address indexed funder, uint256 amount);
@@ -42,6 +46,12 @@ contract StudyDAO {
 
     constructor(address _daoToken) {
         daoToken = DAOToken(_daoToken);
+        admin = msg.sender;  // Set the deployer as the admin
+    }
+
+    modifier onlyAdmin() {
+        require(msg.sender == admin, "Only admin can call this function");
+        _;
     }
 
     function registerMember(bool isTeacher, string memory profile) public {
@@ -53,9 +63,23 @@ contract StudyDAO {
             isStudent: !isTeacher,
             profileURI: profile
         });
-        daoToken.mint(msg.sender, rewardOnRegistration);
+
+        // No reward is minted here anymore
 
         emit MemberRegistered(msg.sender, isTeacher);
+    }
+
+    function upgradeToTeacher(address member) public onlyAdmin {
+        require(members[member].reputation > 0, "Member must be registered first.");
+        require(!members[member].isTeacher, "Member is already a teacher.");
+
+        members[member].isTeacher = true;
+        members[member].isStudent = false;  // A teacher can't be a student
+
+        // Mint reward when upgraded to teacher
+        daoToken.mint(member, rewardOnTeacherUpgrade);
+
+        emit TeacherUpgraded(member);
     }
 
     function proposeContent(string memory _description, uint256 _goal) public {
@@ -80,13 +104,16 @@ contract StudyDAO {
         require(proposals[_proposalId].id == _proposalId, "Invalid proposal ID.");
         Proposal storage proposal = proposals[_proposalId];
         require(!proposal.approved, "Proposal already approved.");
+        require(!proposal.voters[msg.sender], "You have already voted on this proposal.");
 
+        // Vote with reputation
         proposal.votes += members[msg.sender].reputation;
+        proposal.voters[msg.sender] = true;  // Mark this user as voted
+
         emit Voted(_proposalId, msg.sender, members[msg.sender].reputation);
 
         if (proposal.votes > 3) {
             proposal.approved = true;
-
             daoToken.mint(proposal.proposer, rewardOnApproval);
         }
     }
@@ -115,22 +142,21 @@ contract StudyDAO {
     }
 
     function distributeRewards(uint _proposalId) internal {
-    Proposal storage proposal = proposals[_proposalId];
-    uint256 totalFunds = proposal.goal;
+        Proposal storage proposal = proposals[_proposalId];
+        uint256 totalFunds = proposal.goal;
 
-    for (uint i = 0; i < funderProposals[msg.sender].length; i++) {
-        uint proposalId = funderProposals[msg.sender][i];
-        if (proposalId == _proposalId) {
-            uint256 contribution = proposal.funders[msg.sender];
+        for (uint i = 0; i < funderProposals[msg.sender].length; i++) {
+            uint proposalId = funderProposals[msg.sender][i];
+            if (proposalId == _proposalId) {
+                uint256 contribution = proposal.funders[msg.sender];
 
-            if (contribution > 0) {
-                uint256 reward = (contribution * fundingRewardMultiplier * 10**18) / totalFunds;
-                daoToken.mint(msg.sender, reward);
+                if (contribution > 0) {
+                    uint256 reward = (contribution * fundingRewardMultiplier * 10**18) / totalFunds;
+                    daoToken.mint(msg.sender, reward);
+                }
             }
         }
     }
-}
-
 
     function getFunderContribution(uint _proposalId, address funder) public view returns (uint256) {
         require(proposals[_proposalId].id == _proposalId, "Invalid proposal ID.");

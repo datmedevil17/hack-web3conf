@@ -224,7 +224,7 @@ const Events = () => {
     <h3 className="text-xl font-bold mt-2">{event.title}</h3>
     <p className="text-gray-600 mt-2">{event.description}</p>
     <p className="text-sm text-gray-500 mt-2">Date: {event.date}</p>
-    <p className="text-lg font-bold text-blue-600 mt-2">Cost: {event.cost} ETH</p>
+    <p className="text-lg font-bold text-blue-600 mt-2">Cost: {event.cost} Tokens</p>
     <button
       className="mt-4 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
       onClick={() => handleBuyTicket(event.id)}

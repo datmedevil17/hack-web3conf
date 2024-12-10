@@ -5,7 +5,7 @@ import image2 from '../assets/image.png'
 import axios from "axios"
 
 function Home() {
-    const { state, account, connectWallet } = useContext(WalletContext); // Destructure the context
+    const { state, account } = useContext(WalletContext); // Destructure the context
 
     const [role, setRole] = useState('');
     const [isLoading, setIsLoading] = useState(false);
